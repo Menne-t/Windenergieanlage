@@ -363,11 +363,11 @@ const C=[
   tip:'Ein Fundament wird in einem Zug betoniert. Dafür fahren an einem Tag oft über 100 Betonmischer an.',
   hp:[-7,0.8,-4],view:{pos:[-30,6,26],look:[0,-1.5,0]}},
  {id:'kranstellflaeche',scene:'outside',area:'Aufbau',name:'Kranstellfläche',chain:null,
-  task:'Auf dieser geschotterten Fläche neben dem Turm steht beim Aufbau der Hauptkran.',
+  task:'Auf dieser geschotterten Fläche neben dem Turm steht beim Aufbau und bei großen Reparaturen der Kran.',
   how:'Ein großer Raupen- oder Mobilkran hebt nacheinander die Turmsegmente, die Gondel, die Nabe und die Rotorblätter. Die Fläche muss die enorme Last des Krans tragen. Sie bleibt nach dem Bau erhalten, damit bei großen Reparaturen und beim Rückbau nach 20 bis 25 Jahren wieder ein Kran anrücken kann.',
   facts:[['Kranhöhe','über 160 m'],['Transporte','Dutzende Schwertransporte je Anlage'],['Rotorblätter','werden meist nachts angeliefert']],
   tip:'Für enge Kurven gibt es Spezialfahrzeuge, die ein Rotorblatt während der Fahrt schräg nach oben stellen.',
-  hp:[28,0.6,0],view:{pos:[58,1.7,42],look:[28,0,0]}},
+  hp:[22,1.2,8],view:{pos:[62,18,46],look:[28,2,0],free:true}},
 
  {id:'trafo',scene:'base',area:'Netzanschluss',name:'Transformator',chain:5,
   task:'Erhöht die Spannung des erzeugten Stroms, damit er mit geringen Verlusten ins Netz übertragen werden kann.',
@@ -402,7 +402,7 @@ const C=[
   hp:[0,2.75,2.7],view:{pos:[-2.3,1.7,0.6],look:[0,1.9,2.6]}},
  {id:'getriebe',scene:'nacelle',area:'Antriebsstrang',name:'Getriebe',chain:2,
   task:'Übersetzt die langsame Drehung des Rotors in die schnelle Drehung, die der Generator braucht.',
-  how:'Das Getriebe erhöht die Drehzahl vom Rotor zum Generator etwa um das Hundertfache. Gleichzeitig sinkt das Drehmoment im selben Verhältnis. Große Anlagen nutzen dafür Planetengetriebe, weil sie klein, leise und sehr effizient sind. Öl schmiert und kühlt die Zahnräder. Mit „Getriebe aufschneiden“ kannst du in Zeitlupe hineinschauen.',
+  how:'Das Getriebe erhöht die Drehzahl vom Rotor zum Generator etwa um das Hundertfache. Gleichzeitig sinkt das Drehmoment im selben Verhältnis. Große Anlagen nutzen dafür Planetengetriebe, weil sie klein, leise und sehr effizient sind. Öl schmiert und kühlt die Zahnräder.',
   facts:[['Übersetzung','etwa 1 : 100 bis 1 : 150'],['Masse','oft 30 bis 50 t'],['Öl','mehrere hundert Liter'],['Wirkungsgrad','etwa 97 %']],
   tip:'Es gibt auch getriebelose Anlagen mit Direktantrieb. Dort sitzt ein großer, vielpoliger Ringgenerator direkt an der Nabe – weniger Verschleißteile, aber eine schwerere Gondel.',
   hp:[0,3.4,-1.7],view:{pos:[2.3,1.7,0.4],look:[0,2.0,-2.0]}},
@@ -614,8 +614,24 @@ function buildOutside(){
   gg.setAttribute('color',new T.Float32BufferAttribute(gcol,3)); gg.computeVertexNormals();
   const ground=new T.Mesh(gg,new T.MeshLambertMaterial({vertexColors:true})); ground.userData.walk=true; sc.add(ground); S.ground=ground;
   // Kranstellfläche & Zuwegung
-  const gravel=std(0xbab3a3,{roughness:1});
-  const pad=box(32,0.12,28,gravel,28,0.06,0,sc); tag(pad,'kranstellflaeche'); pad.userData.walk=true;
+  const gravelTex=canvasTex(256,256,(g,w,h)=>{g.fillStyle='#cfc6b3';g.fillRect(0,0,w,h);const r=rng(3);for(let i=0;i<2600;i++){const v=150+Math.floor(r()*90);g.fillStyle=`rgb(${v},${v-6},${v-18})`;g.fillRect(r()*w,r()*h,2+r()*2,2+r()*2);}},[6,5]);
+  const gravel=new T.MeshStandardMaterial({map:gravelTex,color:0xb0a690,roughness:1});
+  const kran=new T.Group(); kran.position.y=0.45; sc.add(kran);
+  const pad=box(32,1.0,28,gravel,28,0,0,kran); pad.userData.walk=true;
+  const curb=std(0x8e8676,{roughness:1}); [[28,0.2,14.2,32.6,0.4,0.5],[28,0.2,-14.2,32.6,0.4,0.5],[44.2,0.2,0,0.5,0.4,28.6],[11.8,0.2,0,0.5,0.4,28.6]].forEach(a=>box(a[3],a[4],a[5],curb,a[0],a[1],a[2],kran));
+  // Mobilkran in Parkstellung
+  const yel=std(0xe3b51e,{roughness:.5,metalness:.2}), dark=std(0x2d3136,{roughness:.7}), steelK=std(0x9aa3ad,{metalness:.5,roughness:.4});
+  const mk=new T.Group(); mk.position.set(30,0.5,-3); mk.rotation.y=0.35; kran.add(mk);
+  box(16,1.6,3,yel,0,1.6,0,mk); box(3,2.6,2.8,yel,6.6,3.3,0,mk); box(1.8,1.2,2.6,std(0x6fa8dc,{roughness:.2,metalness:.3}),7.6,3.6,0,mk);
+  for(let i=0;i<5;i++)[-1.45,1.45].forEach(zz=>{const w=cylZ(0.75,0.75,0.6,dark,-6+i*3,0.75,zz,mk,16);});
+  [[-6,1],[-6,-1],[5,1],[5,-1]].forEach(([xx,sgn])=>{box(0.5,0.4,3.2,yel,xx,1.1,sgn*3.0,mk); box(1.2,0.15,1.2,std(0x6b5a3e),xx,0.08,sgn*4.6,mk);});
+  box(4,1.4,3,yel,-3,3.1,0,mk); // Drehbühne
+  const boom=new T.Group(); boom.position.set(-3,3.8,0); boom.rotation.z=0.62; mk.add(boom);
+  box(30,1.1,1.1,yel,15,0,0,boom); box(26,0.8,0.8,yel,30,0,0,boom); cylY(0.04,0.04,14,dark,43,-7,0,boom,4);
+  box(4,1.3,1.6,steelK,-6.5,3.2,0,mk); // Gegengewicht
+  // Baggermatten (Lastverteilungsplatten)
+  for(let i=0;i<4;i++) box(5,0.18,1.2,std(0x7a5a3a,{roughness:1}),16,0.4+i*0.19,-10.5,kran);
+  tag(kran,'kranstellflaeche');
   const rp=[],ri=[]; let n=0;
   for(let x=44;x<=1400;x+=10){const z=Math.sin(x*0.004)*60*smooth(clamp((x-40)/200,0,1)); const dz=Math.cos(x*0.004)*0.24*smooth(clamp((x-40)/200,0,1)); const nx=-dz,nl=Math.hypot(nx,1);
     [-2.6,2.6].forEach(o=>{const px=x+o*nx/nl,pz=z+o/nl; rp.push(px,groundY(px,pz)+0.12,pz);}); if(n>0){const a=(n-1)*2;ri.push(a,a+1,a+2,a+1,a+3,a+2);} n++;}
@@ -794,7 +810,6 @@ function buildNacelle(){
   // Markierungen, damit die Drehung sichtbar wird
   [st1.sun,st2.sun].forEach(g=>box(0.04,0.18,0.02,std(0xffffff),0,0.1,0.2,g));
   S.gear={st1,st2,sh1,sh2,big,pin,spur:0.44/0.11};
-  S.glabels=[{text:'Planetenstufe 1',p:[0,3.25,-1.25]},{text:'Hohlrad (steht fest)',p:[1.2,1.2,-1.25]},{text:'Sonnenrad',p:[0,1.95,-1.0]},{text:'Planetenstufe 2',p:[0,2.75,-2.55]},{text:'Stirnradstufe',p:[0,1.35,-3.55]},{text:'schnelle Welle → Generator',p:[0,2.9,-4.1]}];
   // schnelle Welle, Bremse, Kupplung
   const fast=new T.Group(); fast.position.set(0,2.55,0); sc.add(fast); S.fast=fast;
   const steel2=std(0x9aa4ae,{metalness:.4,roughness:.35}); cylZ(0.13,0.13,2.4,steel2,0,0,-5.1,fast,16);
@@ -843,8 +858,7 @@ function buildNacelle(){
     {key:'hub',label:'Zur Nabe',pos:[1.7,1.7,3.65],look:[0,2.1,7.2]},
     {key:'rear',label:'Heck',pos:[0.6,1.7,-10.4],look:[0.4,1.4,-13]}
   ];
-  S.actions=[{id:'down',label:'Mit dem Lift nach unten',icon:'↓',hp:[-1.8,0.9,-11.6],run:()=>liftDown()},
-             {id:'gear',label:'Getriebe aufschneiden',icon:'⚙',hp:null,plain:true,run:()=>toggleGear()}];
+  S.actions=[{id:'down',label:'Mit dem Lift nach unten',icon:'↓',hp:[-1.8,0.9,-11.6],run:()=>liftDown()}];
   const rects=[[1.4,2.5,-12.3,3.75],[-2.5,-1.4,-12.3,3.75],[-2.5,2.5,-12.3,-10.15],[-2.5,2.5,3.4,3.75]];
   S.clampPos=v=>{let best=null,bd=1e9; rects.forEach(([x0,x1,z0,z1])=>{const x=clamp(v.x,x0,x1),z=clamp(v.z,z0,z1),d=(x-v.x)**2+(z-v.z)**2; if(d<bd){bd=d;best=[x,z];}}); v.x=best[0];v.z=best[1];v.y=1.7;return v;};
   S.walkSpeed=1.6; S.fov=74; S.eyebrow='Gondel · 125 m Höhe'; S.title='Im Maschinenhaus';
